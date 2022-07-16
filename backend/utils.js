@@ -1,0 +1,228 @@
+//const Task = require("./model/task")
+const User = require("./model/user");
+const TaskSchema = require("./model/task");
+const Mongoose = require("mongoose");
+const moment = require("moment");
+
+function query_match(query, task) {
+  return (
+    task.task_name.includes(query) || task.task_description.includes(query)
+  );
+}
+exports.inapp_notifier = async (req, res, next) => {
+  const { u_id, t_duedate } = req.body;
+  //console.log(moment(t_duedate, "DD-MM-YYYY").startOf("day").toDate());
+  let db_name = "task" + "_" + u_id;
+  let Task = Mongoose.model(db_name, TaskSchema);
+  await Task.find({
+    task_duedate: moment(t_duedate, "DD-MM-YYYY").startOf("day").toDate(),
+  }).then((tasks) => {
+    for (let task of tasks) {
+      console.log(task.task_name + " " + task.task_duedate);
+    }
+    res.status(200).json({
+      message: `Send the task list with dueDate ${t_duedate}`,
+      tasks,
+    });
+  });
+};
+exports.change_task_status = async (req, res, next) => {
+  const { u_id, t_id, t_status } = req.body;
+  let db_name = "task" + "_" + u_id;
+  let Task = Mongoose.model(db_name, TaskSchema);
+  await Task.findById(t_id)
+    .then((task) => {
+      let temp = task.task_status;
+      task.task_status = t_status;
+      res.status(200).json({
+        message: `Changed the status of task from ${temp} to ${t_status}`,
+      });
+    })
+    .catch((err) => {
+      res.staus(400).josn({
+        message: `Failed to change task status to ${t_status}`,
+        error: err.message,
+      });
+    });
+};
+
+exports.search_task = async (req, res, next) => {
+  //console.log(req.query);
+  const { u_id } = req.body;
+  const { query } = req.query.q;
+  query = query.trim();
+  let searchResult = [];
+  let db_name = "task" + "_" + u_id;
+  let Task = Mongoose.model(db_name, TaskSchema);
+  await Task.find().then((tasks) => {
+    for (let task of tasks) {
+      if (query_match(query, task)) {
+        // match query and so populate this task on frontend
+        searchResult.push(task);
+      }
+    }
+    res
+      .status(200)
+      .json({ message: "This is the search result", searchResult });
+  });
+};
+
+exports.sort_task = async (req, res, next) => {
+  //user has taskids
+  //Sort alphabetically, duedate (by deafult) , creation date
+  const { u_id, sort_order, sort_mode } = req.body;
+  if (!["Alphabetically", "Duedate", "Creationdate"].includes(sort_mode))
+    return res.status(400).json({ message: "Incorrect Sort Mode" });
+
+  if (!["asc", "dsc"].includes(sort_order))
+    return res.status(400).json({ message: "Incorrect Sort Order" });
+
+  let db_name = "task" + "_" + u_id;
+  let Task = Mongoose.model(db_name, TaskSchema);
+
+  if (sort_mode == "Alphabetically") {
+    await Task.find()
+      .sort({ task_name: "asc" })
+      .then((tasks) => {
+        for (let task of tasks) {
+          console.log(task.task_name);
+        }
+        res.status(200).json({ message: "Sorted by Alphabetically", tasks });
+      });
+  } else if (sort_mode == "Duedate") {
+    await Task.find()
+      .sort({ task_duedate: "asc" })
+      .then((tasks) => {
+        for (let task of tasks) {
+          console.log(task.task_name + " " + task.task_duedate);
+        }
+        res.status(200).json({ message: "Sorted by DueDate", tasks });
+      });
+  } else {
+    await Task.find()
+      .sort({ task_creationdate: "asc" })
+      .then((tasks) => {
+        for (let task of tasks) {
+          console.log(task.task_name + " " + task.task_creationdate);
+        }
+        res.status(200).json({ message: "Sorted by CreationDate", tasks });
+      });
+  }
+};
+
+exports.add_task = async (req, res, next) => {
+  const { t_name, t_description, t_status, t_priority, t_duedate, u_id } =
+    req.body;
+  console.log(
+    t_name +
+      " " +
+      t_description +
+      " " +
+      t_status +
+      " " +
+      t_priority +
+      " " +
+      t_duedate
+  );
+
+  if (!["Important", "Unimportant"].includes(t_priority)) {
+    return res
+      .status(400)
+      .json({ message: `Incorrect task priorty + ${t_priority}` });
+  }
+
+  if (!["Pending", "Overdue", "Completed"].includes(t_status)) {
+    return res
+      .status(400)
+      .json({ message: `Incorrect task status + ${t_status}` });
+  }
+
+  let db_name = "task" + "_" + u_id;
+  let Task = Mongoose.model(db_name, TaskSchema);
+  try {
+    await Task.create({
+      task_name: t_name,
+      task_description: t_description,
+      task_status: t_status,
+      task_priority: t_priority,
+      task_duedate: t_duedate,
+    })
+      .then((task) => {
+        console.log(u_id + " " + task._id);
+
+        /*User.findOneAndUpdate(
+            {_id: u_id},
+            {$push: {tids:  task._id}}
+        )*/
+
+        res.status(200).json({ message: "Task successfully created", task });
+      })
+      .catch((error) => {
+        res
+          .status(401)
+          .json({ message: "Unable to create task", error: error.message });
+      });
+  } catch (error) {
+    console.log("Task - ok");
+    res
+      .status(400)
+      .json({ message: "An error occurred", error: error.message });
+  }
+};
+
+exports.edit_task = async (req, res, next) => {
+  const { u_id, t_id, t_name, t_description, t_priority, t_duedate } = req.body;
+  console.log(
+    u_id +
+      " " +
+      t_name +
+      " " +
+      t_description +
+      " " +
+      t_priority +
+      " " +
+      t_duedate
+  );
+  let db_name = "task" + "_" + u_id;
+  let Task = Mongoose.model(db_name, TaskSchema);
+  await Task.findById(t_id)
+    .then((task) => {
+      task.task_name = t_name;
+      task.task_description = t_description;
+      task.task_priority = t_priority;
+      task.task_duedate = t_duedate;
+      task.save((error) => {
+        if (error) {
+          res.status(400).json({
+            message: "Unable to update task information",
+            error: error.message,
+          });
+          process.exit(1);
+        }
+        res
+          .status(201)
+          .json({ message: "Task Information updated successfully", task });
+      });
+    })
+    .catch((error) => {
+      res
+        .status(400)
+        .json({ message: "An error occurred", error: error.message });
+    });
+};
+
+exports.delete_task = async (req, res, next) => {
+  const { u_id, t_id } = req.body;
+  let db_name = "task" + "_" + u_id;
+  let Task = Mongoose.model(db_name, TaskSchema);
+  await Task.findById(t_id)
+    .then((task) => task.remove())
+    .then((task) =>
+      res.status(201).json({ message: "Task successfulyl deleted", task })
+    )
+    .catch((error) =>
+      res
+        .status(400)
+        .json({ message: "Unable to delete task", error: error.message })
+    );
+};
