@@ -1,0 +1,17 @@
+.form-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
+}
+.label1 {
+    width:150px;
+    padding:0px;
+}
+.label2 {
+    padding:5px;
+}
+.label3 {
+    padding: 0px;
+}
