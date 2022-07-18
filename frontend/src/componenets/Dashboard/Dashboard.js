@@ -49,7 +49,20 @@ export default function Dashboard() {
         reload();
       });
   };
-
+  const sortIt = () => {
+    axios.get(`http://localhost:5000/sortTask?q=${u_id}`).then((response) => {
+      console.log(response.data.tasks);
+      setAPIData(response.data.tasks);
+    });
+  };
+  const revertIt = () => {
+    axios
+      .get(`http://localhost:5000/get_all_tasks?q=${u_id}`)
+      .then((response) => {
+        console.log(response.data.tasks);
+        setAPIData(response.data.tasks);
+      });
+  };
   useEffect(() => {
     setUserid(localStorage.getItem("user_id"));
     console.log(u_id);
@@ -79,6 +92,12 @@ export default function Dashboard() {
             </Link>
             <Link to="../../login">
               <Button>Log Out</Button>
+            </Link>
+            <Link to="../../dashboard">
+              <Button onClick={() => sortIt()}> Sort Tasks</Button>
+            </Link>
+            <Link to="../../dashboard">
+              <Button onClick={() => revertIt()}> Revert</Button>
             </Link>
           </div>
         </nav>

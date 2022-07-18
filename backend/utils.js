@@ -3,12 +3,81 @@ const User = require("./model/user");
 const TaskSchema = require("./model/task");
 const Mongoose = require("mongoose");
 const moment = require("moment");
+const { isUndefined } = require("lodash");
+
+//let C = 0;
+//exports.C = C;
+
+const nodemailer = require("nodemailer");
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 587,
+  auth: {
+    user: "guyzackmartin56@gmail.com",
+    pass: "oiifimbtkinihrlz",
+  },
+});
+transporter.verify().then(console.log).catch(console.error);
+
+let message = {
+  from: "guyzackmartin56@gmail.com",
+  to: "priyanshagarwal02may@gmail.com",
+  subject: "Due Task",
+  text: "Hello, Please complete the task by EOD",
+};
 
 function query_match(query, task) {
   return (
     task.task_name.includes(query) || task.task_description.includes(query)
   );
 }
+function isdue(task) {
+  let ddate = moment(task.task_duedate, "DD-MM-YYYY");
+  let current = moment().startOf("day");
+  let left = moment.duration(ddate.diff(current)).asDays();
+  //console.log(ddate + " " + current + " " + left);
+  if (left <= 1 && left > 0) return true;
+}
+exports.check_due_tasks = () => {
+  User.find().then((users) => {
+    for (let user of users) {
+      //if (user.username !== "priyansh") continue;
+      let duetasks = [];
+      let user_id = user._id;
+      let db_name = "task" + "_" + user_id;
+      let Task = Mongoose.model(db_name, TaskSchema);
+
+      console.log(user.username + " ");
+      Task.find().then((tasks) => {
+        for (let task of tasks) {
+          if (isdue(task)) {
+            duetasks.push(task.task_name);
+            //console.log(task.task_name);
+            message.to = user.email;
+            message.text =
+              "Hello, Please complete the following task by EOD: " +
+              "Task Name -> " +
+              task.task_name +
+              "Task Description -> " +
+              task.task_description +
+              "Task Priority -> " +
+              task.task_priority;
+            transporter.sendMail(message, (err, info) => {
+              if (err) {
+                console.log(err);
+              } else {
+                console.log(info);
+              }
+            });
+          }
+        }
+      });
+      //send an email to user with tasks -> duetasks
+    }
+  });
+  //C = require("./server");
+};
+
 exports.inapp_notifier = async (req, res, next) => {
   const { u_id, t_duedate } = req.body;
   //console.log(moment(t_duedate, "DD-MM-YYYY").startOf("day").toDate());
@@ -20,6 +89,7 @@ exports.inapp_notifier = async (req, res, next) => {
     for (let task of tasks) {
       console.log(task.task_name + " " + task.task_duedate);
     }
+
     res.status(200).json({
       message: `Send the task list with dueDate ${t_duedate}`,
       tasks,
@@ -70,7 +140,10 @@ exports.search_task = async (req, res, next) => {
 exports.sort_task = async (req, res, next) => {
   //user has taskids
   //Sort alphabetically, duedate (by deafult) , creation date
-  const { u_id, sort_order, sort_mode } = req.body;
+  const { q } = req.query;
+  let u_id = q;
+  const sort_order = "asc",
+    sort_mode = "Alphabetically";
   if (!["Alphabetically", "Duedate", "Creationdate"].includes(sort_mode))
     return res.status(400).json({ message: "Incorrect Sort Mode" });
 
@@ -82,6 +155,7 @@ exports.sort_task = async (req, res, next) => {
 
   if (sort_mode == "Alphabetically") {
     await Task.find()
+      .collation({ locale: "en" })
       .sort({ task_name: "asc" })
       .then((tasks) => {
         for (let task of tasks) {
@@ -197,10 +271,10 @@ exports.get_all_task = async (req, res, next) => {
 };
 
 exports.edit_task = async (req, res, next) => {
-  const { t_name, t_status, t_description, t_priority, t_duedate } = req.body;
+  let { t_name, t_status, t_description, t_priority, t_duedate } = req.body;
   t_status = t_status ? "Completed" : "Pending";
   t_priority = t_priority ? "Important" : "Unimportant";
-  const { q1, q2 } = req.query.q;
+  const { q1, q2 } = req.query;
   (u_id = q1), (t_id = q2);
   console.log(
     u_id +

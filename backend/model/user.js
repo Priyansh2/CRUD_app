@@ -1,5 +1,6 @@
 const Mongoose = require("mongoose");
 const Task = require("./task");
+
 const UserSchema = new Mongoose.Schema({
   username: {
     type: String,

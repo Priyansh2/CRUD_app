@@ -40,8 +40,8 @@ export default function EditTask() {
     setPriority(localStorage.getItem("Priority"));
     setDone(localStorage.getItem("Done"));
     setUserid(localStorage.getItem("user_id"));
-    console.log(id + " " + u_id + " " + t_name + " " + t_description);
-  }, [id, t_description, t_name, u_id]);
+    //console.log(id + " " + u_id + " " + t_name + " " + t_description);
+  }, [u_id]);
 
   return (
     <div className="form-label">
