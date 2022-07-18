@@ -24,13 +24,14 @@ const TaskSchema = new Mongoose.Schema({
     trim: true,
   },
   task_duedate: {
-    type: Date,
+    type: String,
     required: true,
   },
   task_creationdate: {
     type: Date,
     required: true,
     default: Date.now,
+    unique: true,
   },
 });
 /*TaskSchema.pre("save", function (next) {

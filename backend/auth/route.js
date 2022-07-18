@@ -8,7 +8,8 @@ const {
   sort_task,
   search_task,
   change_task_status,
-  inapp_notifier
+  inapp_notifier,
+  get_all_task,
 } = require("../utils");
 router.route("/register").post(register);
 router.route("/login").post(login);
@@ -20,5 +21,6 @@ router.route("/deleteTask").delete(delete_task);
 router.route("/sortTask").post(sort_task);
 router.route("/searchTask").get(search_task);
 router.route("/changeTaskStatus").put(change_task_status);
-router.route("/notify").post(inapp_notifier)
+router.route("/notify").post(inapp_notifier);
+router.route("/get_all_tasks").get(get_all_task);
 module.exports = router;

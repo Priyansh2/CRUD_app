@@ -111,7 +111,7 @@ exports.sort_task = async (req, res, next) => {
 };
 
 exports.add_task = async (req, res, next) => {
-  const { t_name, t_description, t_status, t_priority, t_duedate, u_id } =
+  let { t_name, t_description, t_status, t_priority, t_duedate, u_id } =
     req.body;
   console.log(
     t_name +
@@ -122,19 +122,23 @@ exports.add_task = async (req, res, next) => {
       " " +
       t_priority +
       " " +
-      t_duedate
+      t_duedate +
+      " " +
+      u_id
   );
-
+  t_status = t_status ? "Completed" : "Pending";
+  t_priority = t_priority ? "Important" : "Unimportant";
+  console.log(t_status + " " + t_priority);
   if (!["Important", "Unimportant"].includes(t_priority)) {
     return res
       .status(400)
-      .json({ message: `Incorrect task priorty + ${t_priority}` });
+      .json({ message: `Incorrect task priorty  ${t_priority}` });
   }
 
   if (!["Pending", "Overdue", "Completed"].includes(t_status)) {
     return res
       .status(400)
-      .json({ message: `Incorrect task status + ${t_status}` });
+      .json({ message: `Incorrect task status  ${t_status}` });
   }
 
   let db_name = "task" + "_" + u_id;
@@ -170,10 +174,38 @@ exports.add_task = async (req, res, next) => {
   }
 };
 
+exports.get_all_task = async (req, res, next) => {
+  const { q } = req.query;
+  u_id = q;
+  console.log(req.query);
+  //console.log("ok" + " " + u_id);
+  let db_name = "task" + "_" + u_id;
+  let Task = Mongoose.model(db_name, TaskSchema);
+  await Task.find()
+    .then((tasks) => {
+      res.status(200).json({
+        message: "Sending client all requested task information",
+        tasks,
+      });
+    })
+    .catch((err) => {
+      res.status(400).json({
+        message: "unable to send reuested task information",
+        error: err.message,
+      });
+    });
+};
+
 exports.edit_task = async (req, res, next) => {
-  const { u_id, t_id, t_name, t_description, t_priority, t_duedate } = req.body;
+  const { t_name, t_status, t_description, t_priority, t_duedate } = req.body;
+  t_status = t_status ? "Completed" : "Pending";
+  t_priority = t_priority ? "Important" : "Unimportant";
+  const { q1, q2 } = req.query.q;
+  (u_id = q1), (t_id = q2);
   console.log(
     u_id +
+      " " +
+      t_id +
       " " +
       t_name +
       " " +
@@ -181,7 +213,9 @@ exports.edit_task = async (req, res, next) => {
       " " +
       t_priority +
       " " +
-      t_duedate
+      t_duedate +
+      " " +
+      t_status
   );
   let db_name = "task" + "_" + u_id;
   let Task = Mongoose.model(db_name, TaskSchema);
@@ -191,6 +225,7 @@ exports.edit_task = async (req, res, next) => {
       task.task_description = t_description;
       task.task_priority = t_priority;
       task.task_duedate = t_duedate;
+      task.task_status = t_status;
       task.save((error) => {
         if (error) {
           res.status(400).json({
@@ -212,14 +247,17 @@ exports.edit_task = async (req, res, next) => {
 };
 
 exports.delete_task = async (req, res, next) => {
-  const { u_id, t_id } = req.body;
+  const { q1, q2 } = req.query;
+  (u_id = q1), (t_id = q2);
+  console.log(u_id + " " + t_id);
   let db_name = "task" + "_" + u_id;
   let Task = Mongoose.model(db_name, TaskSchema);
   await Task.findById(t_id)
     .then((task) => task.remove())
-    .then((task) =>
-      res.status(201).json({ message: "Task successfulyl deleted", task })
-    )
+    .then((task) => {
+      console.log("ok!!");
+      res.status(201).json({ message: "Task successfulyl deleted", task });
+    })
     .catch((error) =>
       res
         .status(400)

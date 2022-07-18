@@ -34,12 +34,10 @@ exports.register = async (req, res, next) => {
         .catch((error) => {
           if (error.name == "ValidationError")
             return handleValidationError(error, res, true);
-          res
-            .status(401)
-            .json({
-              message: "Unable to create existing user!",
-              error: error.mesage,
-            });
+          res.status(401).json({
+            message: "Unable to create existing user!",
+            error: error.mesage,
+          });
         });
     });
   } catch (error) {
