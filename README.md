@@ -9,6 +9,7 @@ Run command npm run-dev to start the server and npm start to start the frontend 
 4) EMAIL NOTIFICATIONS AND EMAIL VALIDATION
 5) DIFFERENT USER ACCESS
 6) DASHBOARD TO VIEW,EDIT,DELETE TRASKS
+
 7)SET PRIORITY AND COMPLETE OR PENDING STATUS
 
 # Local Ports
